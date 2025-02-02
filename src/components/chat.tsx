@@ -60,7 +60,7 @@ export default function VideoChatPage() {
               className="relative bg-gray-900 rounded-lg overflow-hidden"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.5, delay: 0.2 }} 
             >
               <video className="w-full h-full object-cover" autoPlay playsInline>
                 <source src="/placeholder.mp4" type="video/mp4" />
