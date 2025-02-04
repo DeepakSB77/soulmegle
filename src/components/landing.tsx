@@ -26,8 +26,8 @@ export default function OmegleCloneLanding() {
             Soulmagle
           </motion.h1>
           <motion.div initial="hidden" animate="visible" variants={fadeIn} className="flex gap-4">
-            <Button variant="login" className="px-6 py-2">Log In</Button>
-            <Button variant="signup" className="px-6 py-2">Sign Up</Button>
+            <Button variant="login" className="px-6 py-2" onClick={() => navigate('/login')}>Log In</Button>
+            <Button variant="signup" className="px-6 py-2" onClick={() => navigate('/signup')}>Sign Up</Button>
           </motion.div>
         </nav>
       </header>
