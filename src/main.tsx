@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import './index.css'
 import OmegleCloneLanding from './components/landing'
 import Matching from './components/Matching'
-import Chat from './components/Chat'
+import Chat from './components/chat'
 
 const App = () => {
   return (
