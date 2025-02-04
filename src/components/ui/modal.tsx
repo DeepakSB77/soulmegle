@@ -1,6 +1,6 @@
 
 
-const Modal = ({ onClose, children }) => {
+const Modal = ({ onClose, children }: { onClose: () => void, children: React.ReactNode }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
