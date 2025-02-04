@@ -11,7 +11,7 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<OmegleCloneLanding />} />
-        <Route path="/matching" element={<Matching />} />
+        <Route path="/matching" element={<Matching onClose={() => {/* handle close logic */}} />} />
         <Route path="/chat" element={<Chat />} />
       </Routes>
     </Router>
