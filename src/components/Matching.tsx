@@ -100,7 +100,7 @@ const MatchingPage: React.FC<MatchingProps> = ({ onClose }) => {
         variants={fadeIn}
       >
         <button 
-          onClick={onClose} 
+          onClick={() => navigate(-1)}
           className="absolute top-4 left-4 flex items-center text-blue-600 hover:underline"
         >
           <ArrowLeft className="mr-2" />
