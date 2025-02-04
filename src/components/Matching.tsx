@@ -147,6 +147,7 @@ const MatchingPage: React.FC<MatchingProps> = ({ onClose }) => {
             </Button>
           )}
         </div>
+        <Button onClick={onClose}>Close</Button>
         {isLoading && (
           <div className="flex justify-center mt-4">
             <div className="loader">
