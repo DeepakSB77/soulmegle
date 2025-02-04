@@ -14,7 +14,11 @@ const questions = [
   "If animals could talk, which one do you think would be the funniest?",
 ]
 
-export default function MatchingPage() {
+interface MatchingProps {
+  onClose: () => void;
+}
+
+const MatchingPage: React.FC<MatchingProps> = ({ onClose }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [isRecording, setIsRecording] = useState(false)
   const [recordings, setRecordings] = useState<string[]>(new Array(questions.length).fill(""))
@@ -96,7 +100,7 @@ export default function MatchingPage() {
         variants={fadeIn}
       >
         <button 
-          onClick={() => navigate('/')} 
+          onClick={onClose} 
           className="absolute top-4 left-4 flex items-center text-blue-600 hover:underline"
         >
           <ArrowLeft className="mr-2" />
@@ -155,4 +159,6 @@ export default function MatchingPage() {
     </div>
   )
 }
+
+export default MatchingPage
 
