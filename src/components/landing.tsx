@@ -23,10 +23,11 @@ export default function OmegleCloneLanding() {
       <header className="p-4 md:p-6">
         <nav className="container mx-auto flex justify-between items-center">
           <motion.h1 className="text-2xl font-bold text-blue-600" initial="hidden" animate="visible" variants={fadeIn}>
-            ChatRoulette
+            Soulmagle
           </motion.h1>
-          <motion.div initial="hidden" animate="visible" variants={fadeIn}>
-            <Button variant="outline" className="px-6 py-2">Log In</Button>
+          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="flex gap-4">
+            <Button variant="login" className="px-6 py-2">Log In</Button>
+            <Button variant="signup" className="px-6 py-2">Sign Up</Button>
           </motion.div>
         </nav>
       </header>
@@ -71,8 +72,9 @@ export default function OmegleCloneLanding() {
             {[
               "Click 'Start Chatting' to be paired with a random stranger.",
               "Begin your conversation through text or video chat.",
-              "If you want to meet someone new, simply click 'Next' to be paired with another person.",
+              "Answer a few questions and get matched with persons who share your interests.",
               "Enjoy meeting new people and making connections across the globe!",
+              "Don't be abusive to others, be friendly and enjoy the chat!",
             ].map((step, index) => (
               <li key={index} className="flex items-center">
                 <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-4">
@@ -107,7 +109,7 @@ export default function OmegleCloneLanding() {
 
       <footer className="bg-gray-100 py-8">
         <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2023 ChatRoulette. All rights reserved.</p>
+          <p>&copy; 2023 Soulmagle. All rights reserved.</p>
           <div className="mt-4 space-x-4">
             <a href="#" className="hover:underline">
               Terms of Service
