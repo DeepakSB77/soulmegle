@@ -1,18 +1,14 @@
-from flask import request, jsonify
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from services.ai_service import transcribe_audio, get_embedding, calculate_similarity
-from models import User, db
-import requests
-import os
-from flask_socketio import SocketIO, emit
-from app import app
-import numpy as np
+from models import User
+from extensions import db
 
-jwt = JWTManager(app)
-socketio = SocketIO(app)
+# Create a Blueprint
+routes_bp = Blueprint('routes', __name__)
 
 
-@app.route('/register', methods=['POST'])
+@routes_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     new_user = User(username=data['username'])
@@ -22,7 +18,7 @@ def register():
     return jsonify({"msg": "User registered successfully"}), 201
 
 
-@app.route('/login', methods=['POST'])
+@routes_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     user = User.query.filter_by(username=data['username']).first()
@@ -32,7 +28,7 @@ def login():
     return jsonify({"msg": "Bad username or password"}), 401
 
 
-@app.route('/process_audio', methods=['POST'])
+@routes_bp.route('/process_audio', methods=['POST'])
 def process_audio():
     audio_file = request.files['file']
     # Send to OpenAI API for processing
@@ -46,7 +42,7 @@ def process_audio():
         return jsonify({"error": "Failed to process audio"}), response.status_code
 
 
-@app.route('/generate_embedding', methods=['POST'])
+@routes_bp.route('/generate_embedding', methods=['POST'])
 def generate_embedding():
     data = request.get_json()
     # Call OpenAI API to generate embeddings
@@ -65,7 +61,7 @@ def generate_embedding():
         return jsonify({"error": "Failed to generate embedding"}), response.status_code
 
 
-@app.route('/process_answers', methods=['POST'])
+@routes_bp.route('/process_answers', methods=['POST'])
 @jwt_required()
 def process_answers():
     current_user_id = get_jwt_identity()
@@ -95,7 +91,7 @@ def process_answers():
     return jsonify({"message": "Answers processed successfully"}), 200
 
 
-@app.route('/find_match', methods=['GET'])
+@routes_bp.route('/find_match', methods=['GET'])
 @jwt_required()
 def find_match():
     current_user_id = get_jwt_identity()
@@ -118,41 +114,3 @@ def find_match():
         }), 200
 
     return jsonify({"match_found": False}), 200
-
-
-@socketio.on('message')
-def handle_message(msg):
-    # Broadcast the message to all connected clients
-    socketio.send(msg)
-
-
-@socketio.on('connect')
-def handle_connect():
-    print("Client connected")
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    print("Client disconnected")
-
-
-@socketio.on('join_room')
-def on_join(data):
-    room = data['room']
-    join_room(room)
-    emit('user_joined', {'user_id': request.sid}, room=room)
-
-
-@socketio.on('offer')
-def on_offer(data):
-    emit('offer', data, room=data['target'])
-
-
-@socketio.on('answer')
-def on_answer(data):
-    emit('answer', data, room=data['target'])
-
-
-@socketio.on('ice_candidate')
-def on_ice_candidate(data):
-    emit('ice_candidate', data, room=data['target'])

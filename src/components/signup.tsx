@@ -7,17 +7,38 @@ import { ArrowLeft } from "lucide-react"
 const Signup = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle signup logic here
-    console.log("Email:", email, "Password:", password)
+    setError("")
+    
+    try {
+      const response = await fetch('http://localhost:5000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: email, password }),
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        navigate('/login')
+      } else {
+        setError(data.msg || 'Registration failed')
+      }
+    } catch (err) {
+      setError('Failed to connect to server')
+    }
   }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white shadow-md rounded-lg p-8 max-w-sm w-full relative">
+        {error && <div className="text-red-500 text-center mb-4">{error}</div>}
         <button 
           className="absolute top-4 left-4 cursor-pointer flex items-center" 
           onClick={() => navigate(-1)} 

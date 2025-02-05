@@ -1,12 +1,15 @@
 from openai import OpenAI
-from app import app
 import numpy as np
+from flask import current_app
 
-client = OpenAI(api_key=app.config['OPENAI_API_KEY'])
+
+def get_openai_client():
+    return OpenAI(api_key=current_app.config['OPENAI_API_KEY'])
 
 
 def transcribe_audio(audio_file):
     try:
+        client = get_openai_client()
         response = client.audio.transcriptions.create(
             model="whisper-1",
             file=audio_file
@@ -19,6 +22,7 @@ def transcribe_audio(audio_file):
 
 def get_embedding(text):
     try:
+        client = get_openai_client()
         response = client.embeddings.create(
             input=text,
             model="text-embedding-3-small"
