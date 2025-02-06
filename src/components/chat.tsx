@@ -8,8 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Video, Mic, MicOff, VideoOff, MessageSquare, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { io, Socket } from 'socket.io-client'
+import { ReactMediaRecorder } from 'react-media-recorder'
 
-const BACKEND_URL = 'http://localhost:5000' // Update this with your actual backend URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000' // Update this with your actual backend URL
 
 export default function VideoChatPage() {
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -19,6 +20,9 @@ export default function VideoChatPage() {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     // Initialize socket connection
@@ -62,6 +66,56 @@ export default function VideoChatPage() {
     }
   }
 
+  const handleAudioUpload = async (blob: Blob) => {
+    const formData = new FormData()
+    formData.append('file', blob, 'audio.wav')
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/process_audio`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData,
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        console.log('Audio processed:', data)
+      } else {
+        console.error('Error processing audio:', data)
+      }
+    } catch (error) {
+      console.error('Error uploading audio:', error)
+    }
+  }
+
+  const startRecording = async () => {
+    setIsRecording(true)
+    console.log('Recording started...')
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorderRef.current = new MediaRecorder(stream)
+
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      audioChunksRef.current.push(event.data)
+    }
+
+    mediaRecorderRef.current.onstop = async () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+      audioChunksRef.current = [] // Clear the chunks for the next recording
+      await handleAudioUpload(audioBlob)
+    }
+
+    mediaRecorderRef.current.start()
+  }
+
+  const stopRecording = () => {
+    setIsRecording(false)
+    console.log('Recording stopped...')
+    mediaRecorderRef.current?.stop()
+  }
+
   return (
     <div className="flex h-screen bg-gray-100 p-4">
       <Card className="flex-grow flex flex-col">
@@ -75,6 +129,7 @@ export default function VideoChatPage() {
             >
               <video className="w-full h-full object-cover" autoPlay muted playsInline>
                 <source src="/placeholder.mp4" type="video/mp4" />
+                <track kind="captions" srcLang="en" src="" label="English" default />
               </video>
               <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-2 py-1 rounded text-white text-sm">
                 You
@@ -88,6 +143,7 @@ export default function VideoChatPage() {
             >
               <video className="w-full h-full object-cover" autoPlay playsInline>
                 <source src="/placeholder.mp4" type="video/mp4" />
+                <track kind="captions" srcLang="en" src="" label="English" default />
               </video>
               <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-2 py-1 rounded text-white text-sm">
                 Stranger
@@ -143,6 +199,24 @@ export default function VideoChatPage() {
                 <Button type="submit">Send</Button>
               </form>
             </CardContent>
+          </Card>
+          <Card className="flex-grow flex flex-col p-4">
+            <ReactMediaRecorder
+              audio
+              onStop={(blob) => handleAudioUpload(blob)}
+              render={({ status, startRecording, stopRecording }) => (
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`px-4 py-2 ${isRecording ? 'bg-red-500' : 'bg-green-500'} text-white rounded hover:${isRecording ? 'bg-red-600' : 'bg-green-600'}`}
+                  >
+                    {isRecording ? 'Stop Recording' : 'Start Recording'}
+                  </button>
+                  <p>Status: {status}</p>
+                </div>
+              )}
+            />
           </Card>
         </motion.div>
       )}

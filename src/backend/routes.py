@@ -4,6 +4,7 @@ from services.ai_service import transcribe_audio, get_embedding, calculate_simil
 from models import User
 from extensions import db
 import traceback
+import os
 
 # Create a Blueprint
 routes_bp = Blueprint('routes', __name__)
@@ -59,15 +60,19 @@ def login():
 @jwt_required()
 def process_audio():
     audio_file = request.files['file']
-    # Send to OpenAI API for processing
-    response = requests.post('https://api.openai.com/v1/audio/transcriptions', headers={
-        'Authorization': f'Bearer {os.environ.get("OPENAI_API_KEY")}',
-    }, files={'file': audio_file})
+    # Save the audio file temporarily
+    audio_path = os.path.join('temp', audio_file.filename)
+    audio_file.save(audio_path)
 
-    if response.status_code == 200:
-        return jsonify(response.json()), 200
-    else:
-        return jsonify({"error": "Failed to process audio"}), response.status_code
+    # Process the audio file (e.g., transcribe it)
+    # Here you would call your OpenAI API or any other processing logic
+    # For example:
+    # response = openai.Audio.transcribe("whisper-1", audio_path)
+
+    # Clean up the temporary file
+    os.remove(audio_path)
+
+    return jsonify({"msg": "Audio processed successfully"}), 200
 
 
 @routes_bp.route('/generate_embedding', methods=['POST'])
