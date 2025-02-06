@@ -4,11 +4,15 @@ import { io } from 'socket.io-client';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
+// Define the SignalData interface
 interface SignalData {
-    // Define the properties of the signal data here
-    type: string;
-    sdp?: string;
-    candidate?: string;
+    type: 'offer' | 'answer' | 'candidate'; // Adjust based on your signaling needs
+    sdp?: string; // For offer/answer
+    candidate?: {
+        candidate: string;
+        sdpMid?: string;
+        sdpMLineIndex?: number;
+    }; // For ICE candidates
 }
 
 const VideoChat = () => {
@@ -23,7 +27,7 @@ const VideoChat = () => {
 
         const peer = new Peer({ initiator: true, trickle: false });
 
-        peer.on('signal', (data) => {
+        peer.on('signal', (data: SignalData) => {
             // Send the signal data to the other peer
             socketRef.current.emit('signal', data); // Emit the signal data through the socket
         });
@@ -46,7 +50,18 @@ const VideoChat = () => {
 
         // Listen for incoming signal data
         socketRef.current.on('signal', (data: SignalData) => {
-            peer.signal(data); // Use the received signal data
+            if (data.type === 'offer' || data.type === 'answer') {
+                peer.signal({
+                    type: data.type,
+                    sdp: data.sdp // Pass the SDP if it's an offer or answer
+                }); // Use the received signal data
+            } else if (data.candidate) {
+                const candidate = new RTCIceCandidate(data.candidate); // Create an RTCIceCandidate instance
+                peer.signal({
+                    type: 'candidate', // Set the type to 'candidate'
+                    candidate: candidate // Pass the RTCIceCandidate instance
+                }); // Handle ICE candidates
+            }
         });
 
         return () => {
@@ -57,13 +72,13 @@ const VideoChat = () => {
 
     return (
         <div>
-    <video ref={userVideo} autoPlay playsInline>
-        <track kind="captions" srcLang="en" src="" label="English" default />
-    </video>
-    <video ref={partnerVideo} autoPlay playsInline>
-        <track kind="captions" srcLang="en" src="" label="English" default />
-    </video>
-</div>
+            <video ref={userVideo} autoPlay playsInline>
+                <track kind="captions" srcLang="en" src="" label="English" default />
+            </video>
+            <video ref={partnerVideo} autoPlay playsInline>
+                <track kind="captions" srcLang="en" src="" label="English" default />
+            </video>
+        </div>
     );
 };
 

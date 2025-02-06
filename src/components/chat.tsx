@@ -206,8 +206,8 @@ export default function VideoChatPage() {
           <Card className="flex-grow flex flex-col p-4">
             <ReactMediaRecorder
               audio
-              onStop={(blobUrl: string, blob: Blob) => handleAudioUpload(blob)}
-              render={({ status }) => (
+              onStop={(blob) => handleAudioUpload(blob)}
+              render={({ status, startRecording, stopRecording }) => (
                 <div className="flex space-x-2">
                   <button
                     type="button"
