@@ -83,10 +83,12 @@ export default function VideoChatPage() {
       if (response.ok) {
         console.log('Audio processed:', data)
       } else {
-        console.error('Error processing audio:', data)
+        console.error('Error processing audio:', data.msg)
+        alert(`Error: ${data.msg}`)
       }
     } catch (error) {
       console.error('Error uploading audio:', error)
+      alert('Error uploading audio. Please try again.')
     }
   }
 

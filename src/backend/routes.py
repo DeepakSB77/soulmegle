@@ -59,20 +59,26 @@ def login():
 @routes_bp.route('/process_audio', methods=['POST'])
 @jwt_required()
 def process_audio():
-    audio_file = request.files['file']
-    # Save the audio file temporarily
-    audio_path = os.path.join('temp', audio_file.filename)
-    audio_file.save(audio_path)
+    try:
+        audio_file = request.files['file']
+        if not audio_file:
+            return jsonify({"msg": "No audio file provided"}), 400
 
-    # Process the audio file (e.g., transcribe it)
-    # Here you would call your OpenAI API or any other processing logic
-    # For example:
-    # response = openai.Audio.transcribe("whisper-1", audio_path)
+        audio_path = os.path.join('temp', audio_file.filename)
+        audio_file.save(audio_path)
 
-    # Clean up the temporary file
-    os.remove(audio_path)
+        # Process the audio file (e.g., transcribe it)
+        # Here you would call your OpenAI API or any other processing logic
+        # For example:
+        # response = openai.Audio.transcribe("whisper-1", audio_path)
 
-    return jsonify({"msg": "Audio processed successfully"}), 200
+        # Clean up the temporary file
+        os.remove(audio_path)
+
+        return jsonify({"msg": "Audio processed successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"msg": "Audio processing failed", "error": str(e)}), 500
 
 
 @routes_bp.route('/generate_embedding', methods=['POST'])

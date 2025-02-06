@@ -57,9 +57,13 @@ const VideoChat = () => {
 
     return (
         <div>
-            <video ref={userVideo} autoPlay playsInline />
-            <video ref={partnerVideo} autoPlay playsInline />
-        </div>
+    <video ref={userVideo} autoPlay playsInline>
+        <track kind="captions" srcLang="en" src="" label="English" default />
+    </video>
+    <video ref={partnerVideo} autoPlay playsInline>
+        <track kind="captions" srcLang="en" src="" label="English" default />
+    </video>
+</div>
     );
 };
 
