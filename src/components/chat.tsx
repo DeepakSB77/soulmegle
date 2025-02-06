@@ -95,6 +95,7 @@ export default function VideoChatPage() {
 
   const startRecording = async () => {
     setIsRecording(true)
+    console.log(startRecording)
     console.log('Recording started...')
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     mediaRecorderRef.current = new MediaRecorder(stream)
@@ -115,6 +116,7 @@ export default function VideoChatPage() {
 
   const stopRecording = () => {
     setIsRecording(false)
+    console.log(stopRecording)
     console.log('Recording stopped...')
     mediaRecorderRef.current?.stop() // Stop the recording
   }
