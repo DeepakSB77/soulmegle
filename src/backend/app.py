@@ -1,7 +1,9 @@
-from flask import Flask
+from flask import Flask, jsonify
 from config import Config
 from extensions import db, socketio
 from flask_cors import CORS
+from routes import routes_bp
+from flask_jwt_extended import JWTManager
 
 
 def create_app():
@@ -12,10 +14,18 @@ def create_app():
     db.init_app(app)
     CORS(app, resources={r"/*": {"origins": "*"}})
     socketio.init_app(app)
+    jwt = JWTManager(app)
 
-    # Import and register routes here to avoid circular imports
-    from routes import routes_bp  # Import the Blueprint
+    # Register blueprints
     app.register_blueprint(routes_bp)
+
+    # Error handlers
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        return jsonify({
+            "msg": "Internal server error",
+            "error": str(e)
+        }), 500
 
     return app
 
@@ -23,4 +33,11 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    socketio.run(app)
+    with app.app_context():
+        try:
+            db.create_all()
+            print("Database tables created successfully!")
+        except Exception as e:
+            print(f"Error creating database tables: {str(e)}")
+
+    socketio.run(app, debug=True)

@@ -3,6 +3,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token, ge
 from services.ai_service import transcribe_audio, get_embedding, calculate_similarity
 from models import User
 from extensions import db
+import traceback
 
 # Create a Blueprint
 routes_bp = Blueprint('routes', __name__)
@@ -10,12 +11,29 @@ routes_bp = Blueprint('routes', __name__)
 
 @routes_bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    new_user = User(username=data['username'])
-    new_user.set_password(data['password'])
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"msg": "User registered successfully"}), 201
+    try:
+        data = request.get_json()
+
+        # Check if user already exists
+        if User.query.filter_by(username=data['username']).first():
+            return jsonify({"msg": "Username already exists"}), 400
+
+        # Create new user
+        new_user = User(username=data['username'])
+        new_user.set_password(data['password'])
+
+        # Add to database
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({"msg": "User registered successfully"}), 201
+
+    except Exception as e:
+        # Log the full error
+        print(f"Registration error: {str(e)}")
+        print(traceback.format_exc())  # This will print the full stack trace
+        db.session.rollback()  # Rollback any failed database operations
+        return jsonify({"msg": f"Registration failed: {str(e)}"}), 500
 
 
 @routes_bp.route('/login', methods=['POST'])
@@ -29,6 +47,7 @@ def login():
 
 
 @routes_bp.route('/process_audio', methods=['POST'])
+@jwt_required()
 def process_audio():
     audio_file = request.files['file']
     # Send to OpenAI API for processing

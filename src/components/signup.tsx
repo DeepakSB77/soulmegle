@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 const Signup = () => {
   const [email, setEmail] = useState("")
@@ -14,8 +16,14 @@ const Signup = () => {
     e.preventDefault()
     setError("")
     
+    if (!email || !password) {
+      toast.error("Email and password are required.")
+      return
+    }
+
     try {
-      const response = await fetch('http://localhost:5000/register', {
+      // Register the user
+      const registerResponse = await fetch('http://localhost:5000/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,15 +31,33 @@ const Signup = () => {
         body: JSON.stringify({ username: email, password }),
       })
 
-      const data = await response.json()
+      const registerData = await registerResponse.json()
       
-      if (response.ok) {
-        navigate('/login')
+      if (registerResponse.ok) {
+        toast.success("Registration successful!")
+        
+        // Automatically log in the user
+        const loginResponse = await fetch('http://localhost:5000/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username: email, password }),
+        })
+
+        const loginData = await loginResponse.json()
+        
+        if (loginResponse.ok) {
+          localStorage.setItem('token', loginData.access_token)
+          navigate('/matching')
+        }
       } else {
-        setError(data.msg || 'Registration failed')
+        setError(registerData.msg || 'Registration failed')
+        toast.error(registerData.msg || 'Registration failed')
       }
     } catch (err) {
       setError('Failed to connect to server')
+      toast.error('Failed to connect to server')
     }
   }
 
