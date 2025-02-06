@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import { motion } from "framer-motion"
@@ -95,7 +96,6 @@ export default function VideoChatPage() {
   const startRecording = async () => {
     setIsRecording(true)
     console.log('Recording started...')
-
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     mediaRecorderRef.current = new MediaRecorder(stream)
 
@@ -107,7 +107,7 @@ export default function VideoChatPage() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
       audioChunksRef.current = [] // Clear the chunks for the next recording
       
-      await handleAudioUpload(audioBlob) // Pass only audioBlob
+      await handleAudioUpload(audioBlob) // Pass the Blob to the upload function
     }
 
     mediaRecorderRef.current.start()
@@ -116,7 +116,7 @@ export default function VideoChatPage() {
   const stopRecording = () => {
     setIsRecording(false)
     console.log('Recording stopped...')
-    mediaRecorderRef.current?.stop()
+    mediaRecorderRef.current?.stop() // Stop the recording
   }
 
   return (
