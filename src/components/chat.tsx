@@ -106,7 +106,8 @@ export default function VideoChatPage() {
     mediaRecorderRef.current.onstop = async () => {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
       audioChunksRef.current = [] // Clear the chunks for the next recording
-      await handleAudioUpload(audioBlob)
+      
+      await handleAudioUpload(audioBlob) // Pass only audioBlob
     }
 
     mediaRecorderRef.current.start()
@@ -205,8 +206,8 @@ export default function VideoChatPage() {
           <Card className="flex-grow flex flex-col p-4">
             <ReactMediaRecorder
               audio
-              onStop={(blob) => handleAudioUpload(blob)}
-              render={({ status, startRecording, stopRecording }) => (
+              onStop={(blobUrl: string, blob: Blob) => handleAudioUpload(blob)}
+              render={({ status }) => (
                 <div className="flex space-x-2">
                   <button
                     type="button"
