@@ -10,12 +10,13 @@ import { Video, Mic, MicOff, VideoOff, MessageSquare, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { io, Socket } from 'socket.io-client'
 import { ReactMediaRecorder } from 'react-media-recorder'
+import { useNavigate } from 'react-router-dom'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000' // Update this with your actual backend URL
 
 export default function VideoChatPage() {
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [isVideoOn, setIsVideoOn] = useState(true)
+  const [isVideoOn, setIsVideoOn] = useState(false)
   const [isAudioOn, setIsAudioOn] = useState(true)
   const [messages, setMessages] = useState<string[]>([])
   const [socket, setSocket] = useState<Socket | null>(null)
@@ -24,6 +25,10 @@ export default function VideoChatPage() {
   const [isRecording, setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const userVideo = useRef<HTMLVideoElement>(null)
+  const partnerVideo = useRef<HTMLVideoElement>(null)
+  const socketRef = useRef<Socket | null>(null) // Create a ref for the socket
+  const navigate = useNavigate()
 
   useEffect(() => {
     // Initialize socket connection
@@ -121,6 +126,28 @@ export default function VideoChatPage() {
     mediaRecorderRef.current?.stop() // Stop the recording
   }
 
+  const toggleVideo = async () => {
+    if (isVideoOn) {
+      // Stop video
+      userVideo.current?.srcObject?.getTracks().forEach(track => track.stop())
+      setIsVideoOn(false)
+    } else {
+      // Start video
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      userVideo.current.srcObject = stream
+      setIsVideoOn(true)
+    }
+  }
+
+  const handleCancel = () => {
+    // Stop the video stream
+    if (userVideo.current?.srcObject) {
+      userVideo.current.srcObject.getTracks().forEach(track => track.stop())
+    }
+    setIsVideoOn(false)
+    navigate(-1) // Navigate back to the previous page
+  }
+
   return (
     <div className="flex h-screen bg-gray-100 p-4">
       <Card className="flex-grow flex flex-col">
@@ -132,7 +159,7 @@ export default function VideoChatPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <video className="w-full h-full object-cover" autoPlay muted playsInline>
+              <video className="w-full h-full object-cover" autoPlay muted playsInline ref={userVideo}>
                 <source src="/placeholder.mp4" type="video/mp4" />
                 <track kind="captions" srcLang="en" src="" label="English" default />
               </video>
@@ -146,7 +173,7 @@ export default function VideoChatPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }} 
             >
-              <video className="w-full h-full object-cover" autoPlay playsInline>
+              <video className="w-full h-full object-cover" autoPlay playsInline ref={partnerVideo}>
                 <source src="/placeholder.mp4" type="video/mp4" />
                 <track kind="captions" srcLang="en" src="" label="English" default />
               </video>
@@ -156,7 +183,7 @@ export default function VideoChatPage() {
             </motion.div>
           </div>
           <div className="flex justify-center space-x-4 mt-6">
-            <Button variant={isVideoOn ? "default" : "secondary"} size="icon" onClick={() => setIsVideoOn(!isVideoOn)}>
+            <Button variant={isVideoOn ? "default" : "secondary"} size="icon" onClick={toggleVideo}>
               {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
             </Button>
             <Button variant={isAudioOn ? "default" : "secondary"} size="icon" onClick={() => setIsAudioOn(!isAudioOn)}>
@@ -169,7 +196,7 @@ export default function VideoChatPage() {
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
-            <Button variant="destructive" size="icon">
+            <Button variant="destructive" size="icon" onClick={handleCancel}>
               <X className="h-4 w-4" />
             </Button>
           </div>
