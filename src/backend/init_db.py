@@ -4,6 +4,9 @@ from models import User
 
 def init_db():
     with app.app_context():
+        # Drop all existing tables
+        db.drop_all()
+
         # Create tables
         db.create_all()
 

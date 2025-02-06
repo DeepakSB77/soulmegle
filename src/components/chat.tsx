@@ -7,35 +7,60 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Video, Mic, MicOff, VideoOff, MessageSquare, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+import { io, Socket } from 'socket.io-client'
+
+const BACKEND_URL = 'http://localhost:5000' // Update this with your actual backend URL
 
 export default function VideoChatPage() {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isVideoOn, setIsVideoOn] = useState(true)
   const [isAudioOn, setIsAudioOn] = useState(true)
   const [messages, setMessages] = useState<string[]>([])
-  const [socket, setSocket] = useState<WebSocket | null>(null)
+  const [socket, setSocket] = useState<Socket | null>(null)
+  const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const newSocket = new WebSocket("ws://your-backend-url");
-    setSocket(newSocket);
+    // Initialize socket connection
+    const newSocket = io(BACKEND_URL, {
+      transports: ['websocket'],
+      auth: {
+        token: localStorage.getItem('token') // Send JWT token for authentication
+      }
+    })
 
-    newSocket.onmessage = (event) => {
-      const newMessage = event.data;
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-    };
+    // Socket event listeners
+    newSocket.on('connect', () => {
+      console.log('Connected to WebSocket server')
+    })
 
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server')
+    })
+
+    newSocket.on('message', (message: string) => {
+      setMessages(prev => [...prev, message])
+    })
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Connection error:', error)
+    })
+
+    setSocket(newSocket)
+
+    // Cleanup on component unmount
     return () => {
-      newSocket.close();
-    };
-  }, []);
-
-  const sendMessage = () => {
-    if (inputRef.current && socket) {
-      socket.send(inputRef.current.value);
-      inputRef.current.value = "";
+      newSocket.close()
     }
-  };
+  }, [])
+
+  const sendMessage = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (socket && message.trim()) {
+      socket.emit('message', message)
+      setMessage('')
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 p-4">
@@ -107,10 +132,16 @@ export default function VideoChatPage() {
                   ))}
                 </div>
               </ScrollArea>
-              <div className="flex space-x-2">
-                <Input placeholder="Type a message..." className="flex-grow" ref={inputRef} />
-                <Button onClick={sendMessage}>Send</Button>
-              </div>
+              <form onSubmit={sendMessage} className="flex space-x-2">
+                <Input
+                  placeholder="Type a message..."
+                  className="flex-grow"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  ref={inputRef}
+                />
+                <Button type="submit">Send</Button>
+              </form>
             </CardContent>
           </Card>
         </motion.div>

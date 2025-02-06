@@ -14,7 +14,11 @@ def register():
     try:
         data = request.get_json()
 
-        # Check if user already exists
+        # Validate input
+        if not data or 'username' not in data or 'password' not in data:
+            return jsonify({"msg": "Missing username or password"}), 400
+
+        # Check if user exists
         if User.query.filter_by(username=data['username']).first():
             return jsonify({"msg": "Username already exists"}), 400
 
@@ -26,14 +30,19 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
-        return jsonify({"msg": "User registered successfully"}), 201
+        # Generate access token
+        access_token = create_access_token(identity=new_user.id)
+
+        return jsonify({
+            "msg": "User registered successfully",
+            "access_token": access_token
+        }), 201
 
     except Exception as e:
-        # Log the full error
         print(f"Registration error: {str(e)}")
-        print(traceback.format_exc())  # This will print the full stack trace
-        db.session.rollback()  # Rollback any failed database operations
-        return jsonify({"msg": f"Registration failed: {str(e)}"}), 500
+        print(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({"msg": "Registration failed", "error": str(e)}), 500
 
 
 @routes_bp.route('/login', methods=['POST'])

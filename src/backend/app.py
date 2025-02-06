@@ -10,10 +10,20 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Configure CORS
+    CORS(app, resources={
+        r"/*": {
+            "origins": "*",
+            "allow_headers": ["Content-Type", "Authorization"],
+            "methods": ["GET", "POST", "OPTIONS"]
+        }
+    })
+
     # Initialize extensions
     db.init_app(app)
-    CORS(app, resources={r"/*": {"origins": "*"}})
-    socketio.init_app(app)
+    socketio.init_app(app,
+                      cors_allowed_origins="*",
+                      async_mode='gevent')
     jwt = JWTManager(app)
 
     # Register blueprints
@@ -40,4 +50,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error creating database tables: {str(e)}")
 
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
