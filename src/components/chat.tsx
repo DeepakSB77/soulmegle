@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Video, Mic, MicOff, VideoOff, MessageSquare, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { io, Socket } from 'socket.io-client'
-import { ReactMediaRecorder } from 'react-media-recorder'
 import { useNavigate } from 'react-router-dom'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000' // Update this with your actual backend URL
@@ -22,7 +21,7 @@ export default function VideoChatPage() {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const [isRecording, setIsRecording] = useState(false)
+  const [ setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const userVideo = useRef<HTMLVideoElement>(null)
@@ -230,22 +229,6 @@ export default function VideoChatPage() {
           </Card>
           <Card className="flex-grow flex flex-col p-4">
             {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-            <ReactMediaRecorder
-              audio
-              onStop={(blob) => handleAudioUpload(blob)}
-              render={({ status, startRecording, stopRecording }) => (
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={`px-4 py-2 ${isRecording ? 'bg-red-500' : 'bg-green-500'} text-white rounded`}
-                  >
-                    {isRecording ? 'Stop Recording' : 'Start Recording'}
-                  </button>
-                  <p>Status: {status}</p>
-                </div>
-              )}
-            />
             <Button onClick={handleCancel}>Cancel</Button>
           </Card>
         </motion.div>
