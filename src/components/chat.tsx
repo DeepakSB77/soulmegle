@@ -21,7 +21,7 @@ export default function VideoChatPage() {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const [ setIsRecording] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const userVideo = useRef<HTMLVideoElement>(null)
@@ -54,6 +54,7 @@ export default function VideoChatPage() {
 
     socketRef.current.on('connect_error', (error) => {
       console.error('Connection error:', error)
+      console.log(isRecording)
     })
 
     setSocket(socketRef.current)
@@ -110,9 +111,9 @@ export default function VideoChatPage() {
     mediaRecorderRef.current.start()
   }
 
-  const stopRecording = () => {
+  const stopRecordingHandler = () => {
     setIsRecording(false)
-    console.log(stopRecording)
+    console.log(stopRecordingHandler)
     console.log('Recording stopped...')
     mediaRecorderRef.current?.stop() // Stop the recording
   }
