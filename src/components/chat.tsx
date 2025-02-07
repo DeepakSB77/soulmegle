@@ -27,12 +27,13 @@ export default function VideoChatPage() {
   const audioChunksRef = useRef<Blob[]>([])
   const userVideo = useRef<HTMLVideoElement>(null)
   const partnerVideo = useRef<HTMLVideoElement>(null)
-  const socketRef = useRef<Socket | null>(null) // Create a ref for the socket
+  const socketRef = useRef<Socket | null>(null)
   const navigate = useNavigate()
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io(BACKEND_URL, {
+    socketRef.current = io(BACKEND_URL, {
       transports: ['websocket'],
       auth: {
         token: localStorage.getItem('token') // Send JWT token for authentication
@@ -40,27 +41,27 @@ export default function VideoChatPage() {
     })
 
     // Socket event listeners
-    newSocket.on('connect', () => {
+    socketRef.current.on('connect', () => {
       console.log('Connected to WebSocket server')
     })
 
-    newSocket.on('disconnect', () => {
+    socketRef.current.on('disconnect', () => {
       console.log('Disconnected from WebSocket server')
     })
 
-    newSocket.on('message', (message: string) => {
+    socketRef.current.on('message', (message: string) => {
       setMessages(prev => [...prev, message])
     })
 
-    newSocket.on('connect_error', (error) => {
+    socketRef.current.on('connect_error', (error) => {
       console.error('Connection error:', error)
     })
 
-    setSocket(newSocket)
+    setSocket(socketRef.current)
 
     // Cleanup on component unmount
     return () => {
-      newSocket.close()
+      socketRef.current?.close()
     }
   }, [])
 
@@ -76,25 +77,16 @@ export default function VideoChatPage() {
     const formData = new FormData()
     formData.append('file', blob, 'audio.wav')
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/process_audio`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData,
-      })
+    const response = await fetch(`${BACKEND_URL}/api/process_audio`, {
+      method: 'POST',
+      body: formData,
+    })
 
+    if (response.ok) {
       const data = await response.json()
-      if (response.ok) {
-        console.log('Audio processed:', data)
-      } else {
-        console.error('Error processing audio:', data.msg)
-        alert(`Error: ${data.msg}`)
-      }
-    } catch (error) {
-      console.error('Error uploading audio:', error)
-      alert('Error uploading audio. Please try again.')
+      console.log('Audio processed:', data)
+    } else {
+      setErrorMessage('Error processing audio')
     }
   }
 
@@ -129,19 +121,23 @@ export default function VideoChatPage() {
   const toggleVideo = async () => {
     if (isVideoOn) {
       // Stop video
-      userVideo.current?.srcObject?.getTracks().forEach(track => track.stop())
+      if (userVideo.current?.srcObject instanceof MediaStream) {
+        userVideo.current.srcObject.getTracks().forEach(track => track.stop())
+      }
       setIsVideoOn(false)
     } else {
       // Start video
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      userVideo.current.srcObject = stream
+      if (userVideo.current) {
+        userVideo.current.srcObject = stream
+      }
       setIsVideoOn(true)
     }
   }
 
   const handleCancel = () => {
     // Stop the video stream
-    if (userVideo.current?.srcObject) {
+    if (userVideo.current?.srcObject instanceof MediaStream) {
       userVideo.current.srcObject.getTracks().forEach(track => track.stop())
     }
     setIsVideoOn(false)
@@ -233,6 +229,7 @@ export default function VideoChatPage() {
             </CardContent>
           </Card>
           <Card className="flex-grow flex flex-col p-4">
+            {errorMessage && <p className="text-red-500">{errorMessage}</p>}
             <ReactMediaRecorder
               audio
               onStop={(blob) => handleAudioUpload(blob)}
@@ -241,7 +238,7 @@ export default function VideoChatPage() {
                   <button
                     type="button"
                     onClick={isRecording ? stopRecording : startRecording}
-                    className={`px-4 py-2 ${isRecording ? 'bg-red-500' : 'bg-green-500'} text-white rounded hover:${isRecording ? 'bg-red-600' : 'bg-green-600'}`}
+                    className={`px-4 py-2 ${isRecording ? 'bg-red-500' : 'bg-green-500'} text-white rounded`}
                   >
                     {isRecording ? 'Stop Recording' : 'Start Recording'}
                   </button>
@@ -249,6 +246,7 @@ export default function VideoChatPage() {
                 </div>
               )}
             />
+            <Button onClick={handleCancel}>Cancel</Button>
           </Card>
         </motion.div>
       )}
