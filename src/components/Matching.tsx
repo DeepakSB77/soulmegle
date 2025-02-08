@@ -79,11 +79,33 @@ const MatchingPage: React.FC<MatchingProps> = () => {
     }
   }
 
-  const handleFinish = () => {
-    setIsLoading(true)
+  const handleFinish = async () => {
+    setIsLoading(true);
+    const userId = 1; // Replace with actual user ID from your authentication logic
+    const answers = recordings; // Assuming recordings are the answers
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/store_answers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: userId, answers }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to store answers');
+      }
+
+      const data = await response.json();
+      console.log(data.message); // Success message
+    } catch (error) {
+      console.error('Error storing answers:', error);
+    }
+
     setTimeout(() => {
-      navigate('/chat')
-    }, 5000)
+      navigate('/chat');
+    }, 5000);
   }
 
   const fadeIn = {

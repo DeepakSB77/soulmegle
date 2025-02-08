@@ -11,30 +11,16 @@ import numpy as np
 import wave
 from vosk import Model, KaldiRecognizer
 import json
+import requests  # Make sure to import requests if you're using an API
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Configure CORS
-    CORS(app, resources={
-        r"/*": {
-            "origins": "*",
-            "allow_headers": ["Content-Type", "Authorization"],
-            "methods": ["GET", "POST", "OPTIONS"]
-        }
-    })
-
-    # Initialize extensions
-    db.init_app(app)
-    socketio.init_app(app,
-                      cors_allowed_origins="*",
-                      async_mode='gevent')
-    jwt = JWTManager(app)
-
-    # Register blueprints
-    app.register_blueprint(routes_bp)
+    configure_app(app)
+    initialize_extensions(app)
+    register_blueprints(app)
 
     # Database configuration
     conn = psycopg2.connect(os.getenv('DATABASE_URL'))
@@ -96,6 +82,81 @@ def create_app():
                 'INSERT INTO embeddings_table (embedding) VALUES (%s)', (embeddings,))
             conn.commit()
 
+    @app.route("/save-interests", methods=["POST"])
+    def save_interests():
+        try:
+            username = request.json.get("username")
+            interests_vector = request.json.get("interests_vector")
+            print("Received data:", username, interests_vector)  # Debugging
+
+            result = conn.cursor()
+            result.execute(
+                "INSERT INTO users (username, interests_vector) VALUES (%s, %s) RETURNING *",
+                (username, interests_vector)
+            )
+            conn.commit()
+            print("Inserted data:", result.fetchone())  # Verify insertion
+            return jsonify(result.fetchone()), 200
+        except Exception as error:
+            print("Database error:", error)  # Catch errors
+            return jsonify({"error": "Failed to save interests"}), 500
+
+    # Define the transcription function
+    def transcribe_audio_function(audio_url):
+        # Example using a hypothetical transcription API
+        response = requests.post(
+            # Replace with actual API endpoint
+            "https://api.transcription-service.com/transcribe",
+            json={"audio_url": audio_url},
+            # Replace with your API key if needed
+            headers={"Authorization": "Bearer YOUR_API_KEY"}
+        )
+
+        if response.status_code == 200:
+            # Adjust based on the API response structure
+            return response.json().get("transcript")
+        else:
+            print("Error transcribing audio:", response.text)
+            return "Transcription failed"
+
+    @app.route("/transcribe-audio", methods=["POST"])
+    def transcribe_audio():
+        audio_url = request.json.get("audioUrl")
+        print("Transcribing audio:", audio_url)
+        transcript = transcribe_audio_function(
+            audio_url)  # Call the transcription function
+        print("Transcript:", transcript)  # Check if text is extracted
+        return jsonify({"transcript": transcript}), 200
+
+    @app.route("/match-user", methods=["GET"])
+    def match_user():
+        user_id = request.args.get("userId")
+        threshold = 0.2  # Adjust this value
+
+        # Get the current user's vector
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT interests_vector FROM users WHERE id = %s", (user_id,))
+            current_user_vector = cursor.fetchone()[0]
+
+            # Find closest match within threshold
+            cursor.execute(
+                """
+                SELECT id, username, interests_vector <=> %s AS distance 
+                FROM users 
+                WHERE id != %s AND interests_vector <=> %s < %s 
+                ORDER BY distance 
+                LIMIT 1
+                """,
+                (current_user_vector, user_id, current_user_vector, threshold)
+            )
+
+            result = cursor.fetchone()
+            if not result:
+                return jsonify({"error": "No match found"}), 404
+
+            return jsonify({"id": result[0], "username": result[1]}), 200
+
     # Error handlers
     @app.errorhandler(500)
     def handle_500_error(e):
@@ -107,9 +168,25 @@ def create_app():
     return app
 
 
-app = create_app()
+def configure_app(app):
+    """Configure application settings."""
+    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+
+
+def initialize_extensions(app):
+    """Initialize application extensions."""
+    db.init_app(app)
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='gevent')
+    JWTManager(app)
+
+
+def register_blueprints(app):
+    """Register application blueprints."""
+    app.register_blueprint(routes_bp)
+
 
 if __name__ == "__main__":
+    app = create_app()
     with app.app_context():
         try:
             db.create_all()
