@@ -3,7 +3,7 @@ from config import Config
 from extensions import db, socketio
 from flask_cors import CORS
 from routes import routes_bp
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import psycopg2
 import openai
 import os
@@ -17,6 +17,19 @@ import requests  # Make sure to import requests if you're using an API
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Add CORS configuration here, before other configurations
+    CORS(app,
+         supports_credentials=True,
+         origins=["http://localhost:5173"],
+         allow_headers=["Content-Type", "Authorization", "Accept"],
+         methods=["GET", "POST", "OPTIONS"])
+
+    # Initialize Socket.IO with CORS settings
+    socketio.init_app(app,
+                      cors_allowed_origins=["http://localhost:5173"],
+                      async_mode='gevent'
+                      )
 
     configure_app(app)
     initialize_extensions(app)
@@ -156,6 +169,63 @@ def create_app():
                 return jsonify({"error": "No match found"}), 404
 
             return jsonify({"id": result[0], "username": result[1]}), 200
+
+    @app.route("/api/profile", methods=["GET"])
+    @jwt_required()
+    def get_profile():
+        try:
+            # Get the current user's identity from the JWT token
+            current_user_id = get_jwt_identity()
+
+            # Fetch user profile from database
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT username, email, interests FROM users WHERE id = %s",
+                (current_user_id,)
+            )
+            user = cursor.fetchone()
+
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+
+            return jsonify({
+                "username": user[0],
+                "email": user[1],
+                "interests": user[2] if user[2] else []
+            }), 200
+
+        except Exception as e:
+            print("Error fetching profile:", e)
+            return jsonify({"error": "Failed to fetch profile"}), 500
+
+    # Add user endpoint
+    @app.route('/api/user', methods=['GET', 'OPTIONS'])
+    def get_user():
+        if request.method == 'OPTIONS':
+            # Handle preflight request
+            return '', 204
+
+        # Get token from header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({'error': 'No token provided'}), 401
+
+        try:
+            # Extract token
+            token = auth_header.split(' ')[1]
+            # Verify token and get user info
+            # Add your token verification logic here
+
+            # Dummy response for now
+            user_data = {
+                'id': '1',
+                'name': 'Test User',
+                'role': 'user'
+            }
+            return jsonify(user_data), 200
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 401
 
     # Error handlers
     @app.errorhandler(500)

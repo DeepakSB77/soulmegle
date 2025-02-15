@@ -1,17 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, Video, Shield, Globe } from "lucide-react"
+import { MessageSquare, Video, Shield, Globe, User, LogOut } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Matching from "@/components/Matching"
 
 export default function OmegleCloneLanding() {
   const [email, setEmail] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Check if user is logged in (e.g., by checking localStorage or your auth state)
+    const token = localStorage.getItem('token')
+    setIsLoggedIn(!!token)
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    setIsLoggedIn(false)
+    navigate('/')
+  }
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -25,9 +46,44 @@ export default function OmegleCloneLanding() {
           <motion.h1 className="text-2xl font-bold text-blue-600" initial="hidden" animate="visible" variants={fadeIn}>
             Soulmagle
           </motion.h1>
-          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="flex gap-4">
-            <Button variant="login" className="px-6 py-2" onClick={() => navigate('/login')}>Log In</Button>
-            <Button variant="signup" className="px-6 py-2" onClick={() => navigate('/signup')}>Sign Up</Button>
+          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="flex gap-4 items-center">
+            {isLoggedIn ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <User className="h-6 w-6 text-blue-600" />
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-white" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button 
+                  className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-full shadow-md"
+                  onClick={() => navigate('/login')}
+                >
+                  Log In
+                </Button>
+                <Button 
+                  className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-full shadow-md"
+                  onClick={() => navigate('/signup')}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </motion.div>
         </nav>
       </header>
@@ -66,7 +122,7 @@ export default function OmegleCloneLanding() {
           ))}
         </motion.section>
 
-        <motion.section className="mb-16" initial="hidden" animate="visible" variants={fadeIn}>
+        <motion.section className="mb-16 max-w-2xl mx-auto" initial="hidden" animate="visible" variants={fadeIn}>
           <h2 className="text-3xl font-bold text-center mb-8">How It Works</h2>
           <ol className="space-y-4">
             {[

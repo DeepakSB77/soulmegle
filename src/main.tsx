@@ -7,7 +7,7 @@ import Matching from './components/Matching'
 import Chat from './components/chat'
 import Signup from './components/signup'
 import Login from './components/login'
-
+import Profile from './components/Profile'
 const App = () => {
   return (
     <Router>
@@ -17,6 +17,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/matching" element={<Matching onClose={() => {/* handle close logic */}} />} />
         <Route path="/chat" element={<Chat />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   )
