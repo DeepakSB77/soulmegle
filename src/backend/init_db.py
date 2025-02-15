@@ -1,5 +1,7 @@
-from app import app, db
-from models import User
+from app import create_app
+from extensions import db
+
+app = create_app()
 
 
 def init_db():

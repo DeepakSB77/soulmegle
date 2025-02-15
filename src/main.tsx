@@ -8,6 +8,8 @@ import Chat from './components/chat'
 import Signup from './components/signup'
 import Login from './components/login'
 import Profile from './components/Profile'
+import './i18n'  // Import i18n configuration
+
 const App = () => {
   return (
     <Router>

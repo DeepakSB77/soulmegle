@@ -6,6 +6,8 @@ import { motion } from "framer-motion"
 import { AlertCircle, ArrowLeft } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 const questions = [
   "If you could have any superpower for a day, what would it be?",
   "What's the weirdest food combination you actually enjoy?",
@@ -82,13 +84,15 @@ const MatchingPage: React.FC<MatchingProps> = () => {
   const handleFinish = async () => {
     setIsLoading(true);
     const userId = 1; // Replace with actual user ID from your authentication logic
-    const answers = recordings; // Assuming recordings are the answers
+    const answers = recordings;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/store_answers`, {
+      const response = await fetch(`${BACKEND_URL}/api/store_answers`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({ user_id: userId, answers }),
       });
@@ -98,7 +102,7 @@ const MatchingPage: React.FC<MatchingProps> = () => {
       }
 
       const data = await response.json();
-      console.log(data.message); // Success message
+      console.log(data.message);
     } catch (error) {
       console.error('Error storing answers:', error);
     }
@@ -106,7 +110,7 @@ const MatchingPage: React.FC<MatchingProps> = () => {
     setTimeout(() => {
       navigate('/chat');
     }, 5000);
-  }
+  };
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },

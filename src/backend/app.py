@@ -18,18 +18,22 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Add CORS configuration here, before other configurations
     CORS(app,
-         supports_credentials=True,
-         origins=["http://localhost:5173"],
-         allow_headers=["Content-Type", "Authorization", "Accept"],
-         methods=["GET", "POST", "OPTIONS"])
+         resources={
+             r"/*": {  # Changed from /api/* to /* to cover all routes
+                 "origins": ["http://localhost:5173", "https://your-render-frontend-url.onrender.com"],
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                 "allow_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True,
+                 "expose_headers": ["Content-Type", "Authorization"]
+             }
+         },
+         supports_credentials=True)
 
-    # Initialize Socket.IO with CORS settings
     socketio.init_app(app,
-                      cors_allowed_origins=["http://localhost:5173"],
-                      async_mode='gevent'
-                      )
+                      cors_allowed_origins=["http://localhost:5173",
+                                            "https://your-render-frontend-url.onrender.com"],
+                      async_mode='gevent')
 
     configure_app(app)
     initialize_extensions(app)

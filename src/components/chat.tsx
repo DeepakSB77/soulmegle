@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Video, Mic, MicOff, VideoOff, MessageSquare, X, Smile } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { io, Socket } from 'socket.io-client'
 import { useNavigate } from 'react-router-dom'
 import EmojiPicker from 'emoji-picker-react'
@@ -19,8 +19,9 @@ declare global {
   interface Window {
     webkitSpeechRecognition: any;
   }
-  type SpeechRecognitionEvent = any;
 }
+
+type SpeechRecognition = typeof window.webkitSpeechRecognition;
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000' // Update this with your actual backend URL
 
@@ -44,7 +45,6 @@ export default function VideoChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [socket, setSocket] = useState<Socket | null>(null)
   const [newMessage, setNewMessage] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
   const [isRecording, setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -52,9 +52,7 @@ export default function VideoChatPage() {
   const partnerVideo = useRef<HTMLVideoElement>(null)
   const socketRef = useRef<Socket | null>(null)
   const navigate = useNavigate()
-  const [errorMessage, setErrorMessage] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [subtitles, setSubtitles] = useState<{ user: string; partner: string }>({ user: '', partner: '' })
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null)
   const { i18n } = useTranslation()
@@ -62,39 +60,61 @@ export default function VideoChatPage() {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    // Initialize socket connection
     socketRef.current = io(BACKEND_URL, {
+      withCredentials: true,
       transports: ['websocket'],
       auth: {
-        token: localStorage.getItem('token') // Send JWT token for authentication
+        token: localStorage.getItem('token')
       }
-    })
+    });
 
     // Socket event listeners
     socketRef.current.on('connect', () => {
-      console.log('Connected to WebSocket server')
-    })
+      console.log('Connected to WebSocket server');
+    });
 
     socketRef.current.on('disconnect', () => {
-      console.log('Disconnected from WebSocket server')
-    })
+      console.log('Disconnected from WebSocket server');
+    });
 
     socketRef.current.on('message', (message: string) => {
-      setMessages(prev => [...prev, { text: message, sender: 'other', timestamp: new Date().toISOString() }])
-    })
+      setMessages(prev => [...prev, { 
+        text: message, 
+        sender: 'other', 
+        timestamp: new Date().toISOString() 
+      }]);
+    });
 
     socketRef.current.on('connect_error', (error) => {
-      console.error('Connection error:', error)
-      console.log(isRecording)
-    })
+      console.error('Connection error:', error);
+      console.log(isRecording);
+    });
 
-    setSocket(socketRef.current)
+    socketRef.current.on('new_stranger', (data) => {
+      console.log('New stranger connected:', data);
+      if (data) {
+        // Join the room
+        socketRef.current?.emit('join_room', { room: data.room });
+        
+        // Start new video connection
+        if (userVideo.current?.srcObject instanceof MediaStream) {
+          const stream = userVideo.current.srcObject;
+          // Initialize new peer connection with the stranger
+          initializePeerConnection(stream, data.userId);
+        }
+      } else {
+        console.log('No available strangers');
+        // Optionally show a message to the user
+      }
+    });
+
+    setSocket(socketRef.current);
 
     // Cleanup on component unmount
     return () => {
-      socketRef.current?.close()
-    }
-  }, [])
+      socketRef.current?.close();
+    };
+  }, []);
 
   // Add scroll to bottom effect
   useEffect(() => {
@@ -110,7 +130,7 @@ export default function VideoChatPage() {
       recognition.maxAlternatives = 1;
       recognition.lang = 'en-US';
 
-      recognition.onresult = async (event: SpeechRecognitionEvent) => {
+      recognition.onresult = async (event: any) => {
         const current = event.resultIndex;
         const transcript = event.results[current][0].transcript;
 
@@ -179,17 +199,15 @@ export default function VideoChatPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${BACKEND_URL}/api/user`, {
           method: 'GET',
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
         });
-        
+
         if (response.ok) {
           const userData = await response.json();
           setUser({
@@ -239,7 +257,7 @@ export default function VideoChatPage() {
       const data = await response.json()
       console.log('Audio processed:', data)
     } else {
-      setErrorMessage('Error processing audio')
+      console.error('Error processing audio')
     }
   }
 
@@ -294,7 +312,9 @@ export default function VideoChatPage() {
       userVideo.current.srcObject.getTracks().forEach(track => track.stop())
     }
     setIsVideoOn(false)
-    navigate(-1) // Navigate back to the previous page
+    
+    // Redirect to the landing page
+    navigate('/') // Adjust this path if your landing page is different
   }
 
   // Add emoji handler
@@ -320,7 +340,7 @@ export default function VideoChatPage() {
   }, [socket, user?.id]);
 
   // Send subtitle updates when speaking
-  const handleSpeechRecognition = () => {
+  const handleSpeechRecognition = useCallback(() => {
     if (!('webkitSpeechRecognition' in window)) return;
 
     const recognition = new (window as any).webkitSpeechRecognition();
@@ -342,7 +362,7 @@ export default function VideoChatPage() {
 
     recognition.start();
     return recognition;
-  };
+  }, [socket, user?.id]);
 
   // Start speech recognition when video is on
   useEffect(() => {
@@ -353,7 +373,62 @@ export default function VideoChatPage() {
     return () => {
       if (recognition) recognition.stop();
     };
-  }, [isVideoOn]);
+  }, [isVideoOn, handleSpeechRecognition]);
+
+  const handleSkip = () => {
+    // Stop the current video stream
+    if (userVideo.current?.srcObject instanceof MediaStream) {
+      userVideo.current.srcObject.getTracks().forEach(track => track.stop());
+    }
+    setIsVideoOn(false);
+
+    // Emit a skip event to the server
+    if (socket) {
+      socket.emit('skip'); // You can handle this event on the server to find a new stranger
+    }
+
+    // Optionally, you can also reset any relevant state here
+    setMessages([]); // Clear chat messages if needed
+  };
+
+  const initializePeerConnection = (stream: MediaStream, targetUserId: string) => {
+    const peer = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    });
+
+    stream.getTracks().forEach(track => {
+      peer.addTrack(track, stream);
+    });
+
+    peer.ontrack = (event) => {
+      if (partnerVideo.current) {
+        partnerVideo.current.srcObject = event.streams[0];
+      }
+    };
+
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current?.emit('ice_candidate', {
+          candidate: event.candidate,
+          target: targetUserId
+        });
+      }
+    };
+
+    // Create and send offer
+    peer.createOffer()
+      .then(offer => peer.setLocalDescription(offer))
+      .then(() => {
+        socketRef.current?.emit('offer', {
+          offer: peer.localDescription,
+          target: targetUserId
+        });
+      });
+
+    return peer;
+  };
 
   return (
     <div className="flex h-screen bg-gray-100 p-4">
@@ -420,6 +495,9 @@ export default function VideoChatPage() {
             </Button>
             <Button variant="destructive" size="icon" onClick={handleCancel}>
               <X className="h-4 w-4" />
+            </Button>
+            <Button variant="secondary" size="icon" onClick={handleSkip}>
+              Skip
             </Button>
           </div>
         </CardContent>

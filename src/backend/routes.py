@@ -153,3 +153,47 @@ def find_match():
         }), 200
 
     return jsonify({"match_found": False}), 200
+
+
+@routes_bp.route('/api/user', methods=['GET', 'OPTIONS'])
+@jwt_required()
+def get_user():
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    current_user_id = get_jwt_identity()
+    try:
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        return jsonify({
+            "id": user.id,
+            "name": user.username,
+            "role": user.role
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@routes_bp.route('/api/store_answers', methods=['POST', 'OPTIONS'])
+@jwt_required()
+def store_answers():
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+
+    try:
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Store the answers
+        user.answers = data.get('answers', [])
+        db.session.commit()
+
+        return jsonify({"message": "Answers stored successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
