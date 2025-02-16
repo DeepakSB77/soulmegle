@@ -28,7 +28,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000' 
 // Add these new interfaces
 interface Message {
   text: string;
-  sender: 'user' | 'other';
+  sender: 'user' | 'other' | 'system';
   timestamp: string;
 }
 
@@ -58,6 +58,7 @@ export default function VideoChatPage() {
   const { i18n } = useTranslation()
   const targetLanguage = 'en' // Change this to your desired target language code
   const [user, setUser] = useState<User | null>(null)
+  const [isSkipping, setIsSkipping] = useState(false)
 
   useEffect(() => {
     socketRef.current = io(BACKEND_URL, {
@@ -106,6 +107,26 @@ export default function VideoChatPage() {
         console.log('No available strangers');
         // Optionally show a message to the user
       }
+    });
+
+    socketRef.current.on('partner_skipped', () => {
+      // Clear partner video
+      if (partnerVideo.current?.srcObject instanceof MediaStream) {
+        partnerVideo.current.srcObject.getTracks().forEach(track => track.stop());
+      }
+      setMessages(prev => [...prev, {
+        text: "Your partner has left the chat",
+        sender: 'system',
+        timestamp: new Date().toISOString()
+      }]);
+    });
+
+    socketRef.current.on('no_stranger_available', () => {
+      setMessages(prev => [...prev, {
+        text: "No users available at the moment. Please try again later.",
+        sender: 'system',
+        timestamp: new Date().toISOString()
+      }]);
     });
 
     setSocket(socketRef.current);
@@ -375,20 +396,34 @@ export default function VideoChatPage() {
     };
   }, [isVideoOn, handleSpeechRecognition]);
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    setIsSkipping(true);
+    
     // Stop the current video stream
     if (userVideo.current?.srcObject instanceof MediaStream) {
       userVideo.current.srcObject.getTracks().forEach(track => track.stop());
     }
-    setIsVideoOn(false);
-
-    // Emit a skip event to the server
-    if (socket) {
-      socket.emit('skip'); // You can handle this event on the server to find a new stranger
+    
+    // Clear partner video
+    if (partnerVideo.current?.srcObject instanceof MediaStream) {
+      partnerVideo.current.srcObject.getTracks().forEach(track => track.stop());
     }
 
-    // Optionally, you can also reset any relevant state here
-    setMessages([]); // Clear chat messages if needed
+    // Clear messages
+    setMessages([]);
+    
+    // Emit skip event to server
+    if (socket) {
+      socket.emit('skip');
+    }
+
+    // Wait for 3 seconds
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Find new stranger
+    socket?.emit('find_stranger');
+    
+    setIsSkipping(false);
   };
 
   const initializePeerConnection = (stream: MediaStream, targetUserId: string) => {
@@ -496,8 +531,17 @@ export default function VideoChatPage() {
             <Button variant="destructive" size="icon" onClick={handleCancel}>
               <X className="h-4 w-4" />
             </Button>
-            <Button variant="secondary" size="icon" onClick={handleSkip}>
-              Skip
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              onClick={handleSkip}
+              disabled={isSkipping}
+            >
+              {isSkipping ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+              ) : (
+                "Skip"
+              )}
             </Button>
           </div>
         </CardContent>

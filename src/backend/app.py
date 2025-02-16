@@ -12,6 +12,9 @@ import wave
 from vosk import Model, KaldiRecognizer
 import json
 import requests  # Make sure to import requests if you're using an API
+from flask_sqlalchemy import SQLAlchemy
+from models import User
+from utils import calculate_match_score
 
 
 def create_app():
@@ -146,33 +149,46 @@ def create_app():
         return jsonify({"transcript": transcript}), 200
 
     @app.route("/match-user", methods=["GET"])
+    @jwt_required()
     def match_user():
-        user_id = request.args.get("userId")
+        user_id = get_jwt_identity()
         threshold = 0.2  # Adjust this value
 
-        # Get the current user's vector
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT interests_vector FROM users WHERE id = %s", (user_id,))
-            current_user_vector = cursor.fetchone()[0]
+        try:
+            # Get the current user's answers
+            current_user = User.query.get(user_id)
+            if not current_user or not current_user.answers:
+                return jsonify({"error": "User or user answers not found"}), 404
 
-            # Find closest match within threshold
-            cursor.execute(
-                """
-                SELECT id, username, interests_vector <=> %s AS distance 
-                FROM users 
-                WHERE id != %s AND interests_vector <=> %s < %s 
-                ORDER BY distance 
-                LIMIT 1
-                """,
-                (current_user_vector, user_id, current_user_vector, threshold)
-            )
+            # Find closest match among online users
+            online_users = User.query.filter(
+                User.id != user_id,
+                User.is_online == True,
+                User.is_available == True,
+                User.answers.isnot(None)
+            ).all()
 
-            result = cursor.fetchone()
-            if not result:
-                return jsonify({"error": "No match found"}), 404
+            best_match = None
+            best_score = float('inf')
 
-            return jsonify({"id": result[0], "username": result[1]}), 200
+            for user in online_users:
+                score = calculate_match_score(
+                    current_user.answers, user.answers)
+                if score < threshold and score < best_score:
+                    best_match = user
+                    best_score = score
+
+            if not best_match:
+                return jsonify({"error": "No suitable match found"}), 404
+
+            return jsonify({
+                "id": best_match.id,
+                "username": best_match.username
+            }), 200
+
+        except Exception as e:
+            print(f"Matching error: {str(e)}")
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/profile", methods=["GET"])
     @jwt_required()
@@ -230,6 +246,30 @@ def create_app():
 
         except Exception as e:
             return jsonify({'error': str(e)}), 401
+
+    @app.route("/api/store_answers", methods=['POST', 'OPTIONS'])
+    @jwt_required()
+    def store_answers():
+        if request.method == 'OPTIONS':
+            return '', 204
+
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+
+        try:
+            user = User.query.get(current_user_id)
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+
+            # Store the answers and update user
+            user.answers = data.get('answers', [])
+            user.is_available = True
+            db.session.commit()
+
+            return jsonify({"message": "Answers stored successfully"}), 200
+        except Exception as e:
+            print(f"Error storing answers: {str(e)}")
+            return jsonify({"error": str(e)}), 500
 
     # Error handlers
     @app.errorhandler(500)

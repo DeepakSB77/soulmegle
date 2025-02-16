@@ -28,6 +28,8 @@ const MatchingPage: React.FC<MatchingProps> = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [isWriting, setIsWriting] = useState(false)
+  const [writtenAnswer, setWrittenAnswer] = useState("")
 
   const startRecording = async () => {
     try {
@@ -112,6 +114,19 @@ const MatchingPage: React.FC<MatchingProps> = () => {
     }, 5000);
   };
 
+  const handleWrittenAnswer = () => {
+    if (writtenAnswer.trim()) {
+      setRecordings((prev) => {
+        const newRecordings = [...prev];
+        newRecordings[currentQuestion] = writtenAnswer;
+        return newRecordings;
+      });
+      setWrittenAnswer("");
+      setIsWriting(false);
+      setShowError(false);
+    }
+  };
+
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
@@ -139,24 +154,69 @@ const MatchingPage: React.FC<MatchingProps> = () => {
           </h2>
           <p className="text-lg">{questions[currentQuestion]}</p>
         </div>
-        <div className="flex justify-center mb-6">
-          {isRecording ? (
-            <Button onClick={stopRecording} variant="destructive">
-              Stop Recording
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex justify-center gap-4 mb-4">
+            <Button 
+              onClick={() => setIsWriting(false)} 
+              variant={!isWriting ? "default" : "outline"}
+            >
+              Voice Answer
             </Button>
-          ) : (
-            <Button onClick={startRecording}>Start Recording</Button>
+            <Button 
+              onClick={() => setIsWriting(true)} 
+              variant={isWriting ? "default" : "outline"}
+            >
+              Written Answer
+            </Button>
+          </div>
+          {!isWriting && (
+            <div className="flex justify-center">
+              {isRecording ? (
+                <Button onClick={stopRecording} variant="destructive">
+                  Stop Recording
+                </Button>
+              ) : (
+                <Button onClick={startRecording}>Start Recording</Button>
+              )}
+            </div>
+          )}
+          {isWriting && (
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={writtenAnswer}
+                onChange={(e) => setWrittenAnswer(e.target.value)}
+                placeholder="Type your answer here..."
+                className="w-full p-2 border rounded-md min-h-[100px]"
+              />
+              <Button 
+                onClick={handleWrittenAnswer}
+                disabled={!writtenAnswer.trim()}
+              >
+                Submit Answer
+              </Button>
+            </div>
+          )}
+          {recordings[currentQuestion] && (
+            <div className="mb-6">
+              {typeof recordings[currentQuestion] === 'string' && 
+               recordings[currentQuestion].startsWith('blob:') ? (
+                <audio src={recordings[currentQuestion]} controls className="w-full" />
+              ) : (
+                <div className="p-4 bg-gray-100 rounded-md">
+                  <p className="text-gray-700">{recordings[currentQuestion]}</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
-        {recordings[currentQuestion] && (
-          <div className="mb-6">
-            <audio src={recordings[currentQuestion]} controls className="w-full" />
-          </div>
-        )}
         {showError && (
-          <motion.div className="flex items-center text-red-500 mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div 
+            className="flex items-center text-red-500 mb-4" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }}
+          >
             <AlertCircle className="mr-2" />
-            <span>Please record an answer before moving to the next question.</span>
+            <span>Please provide an answer before moving to the next question.</span>
           </motion.div>
         )}
         <div className="flex justify-between">

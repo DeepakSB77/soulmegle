@@ -1,8 +1,9 @@
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_jwt_extended import decode_token
-from extensions import socketio
+from extensions import socketio, db
 from flask import request
 from database import get_available_users, update_user_availability, update_socket_id
+from models import User
 
 
 @socketio.on('connect')
@@ -12,9 +13,15 @@ def handle_connect():
         if token:
             decoded_token = decode_token(token)
             user_id = decoded_token['sub']
-            update_socket_id(user_id, request.sid)
-            update_user_availability(user_id, True)
-            print(f'Client connected. User ID: {user_id}')
+
+            # Update user status
+            user = User.query.get(user_id)
+            if user:
+                user.is_online = True
+                user.socket_id = request.sid
+                db.session.commit()
+
+            print(f'User {user_id} connected with socket ID: {request.sid}')
         else:
             print('Client connected without authentication')
     except Exception as e:
@@ -25,13 +32,15 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     try:
-        token = request.args.get('token')
-        if token:
-            decoded_token = decode_token(token)
-            user_id = decoded_token['sub']
-            update_user_availability(user_id, False)
+        # Find user by socket_id and update status
+        user = User.query.filter_by(socket_id=request.sid).first()
+        if user:
+            user.is_online = False
+            user.socket_id = None
+            db.session.commit()
+            print(f'User {user.id} disconnected')
     except Exception as e:
-        print(f'Disconnect error: {str(e)}')
+        print(f'Disconnection error: {str(e)}')
 
 
 @socketio.on('message')
@@ -73,38 +82,64 @@ def handle_ice_candidate(data):
 @socketio.on('skip')
 def handle_skip():
     try:
+        # Get current user
         token = request.args.get('token')
-        if not token:
-            return
+        if token:
+            decoded_token = decode_token(token)
+            user_id = decoded_token['sub']
 
-        decoded_token = decode_token(token)
-        current_user_id = decoded_token['sub']
+            # Get user's current room
+            user = User.query.get(user_id)
+            if user and user.socket_id:
+                # Notify other user in the room
+                emit('partner_skipped', room=user.socket_id)
 
-        # Find new stranger
-        available_users = get_available_users()
-        new_stranger = next((user for user in available_users
-                             if user.id != current_user_id), None)
-
-        if new_stranger:
-            # Create a unique room for these users
-            room = f"room_{min(current_user_id, new_stranger.id)}_{max(current_user_id, new_stranger.id)}"
-            join_room(room)
-
-            # Notify both users
-            emit('new_stranger', {
-                'userId': new_stranger.id,
-                'username': new_stranger.username,
-                'room': room
-            }, room=request.sid)
-
-            emit('new_stranger', {
-                'userId': current_user_id,
-                'room': room
-            }, room=new_stranger.socket_id)
-        else:
-            emit('new_stranger', None, room=request.sid)
+                # Reset user's room
+                user.is_available = True
+                db.session.commit()
 
     except Exception as e:
         print(f'Skip error: {str(e)}')
-        emit('error', {'message': 'Error finding new stranger'},
-             room=request.sid)
+
+
+@socketio.on('find_stranger')
+def handle_find_stranger():
+    try:
+        token = request.args.get('token')
+        if token:
+            decoded_token = decode_token(token)
+            user_id = decoded_token['sub']
+
+            # Find available user
+            available_user = User.query.filter(
+                User.id != user_id,
+                User.is_online == True,
+                User.is_available == True
+            ).first()
+
+            if available_user:
+                # Create new room
+                room_id = f"room_{user_id}_{available_user.id}"
+
+                # Update both users
+                current_user = User.query.get(user_id)
+                if current_user:
+                    current_user.is_available = False
+                available_user.is_available = False
+                db.session.commit()
+
+                # Notify both users
+                emit('new_stranger', {
+                    'room': room_id,
+                    'userId': available_user.id
+                }, room=current_user.socket_id)
+
+                emit('new_stranger', {
+                    'room': room_id,
+                    'userId': user_id
+                }, room=available_user.socket_id)
+            else:
+                emit('no_stranger_available', room=request.sid)
+
+    except Exception as e:
+        print(f'Find stranger error: {str(e)}')

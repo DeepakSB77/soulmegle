@@ -4,22 +4,24 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, Video, Shield, Globe, User, LogOut } from "lucide-react"
+import { Shield, Heart, Users, Sparkles } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+// import {
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuLabel,
+//   DropdownMenuSeparator,
+//   DropdownMenuTrigger,
+// } from "@/components/ui/dropdown-menu"
 import Matching from "@/components/Matching"
+import Navbar from './Navbar'
 
-export default function OmegleCloneLanding() {
+export default function SoulmagleLanding() {
   const [email, setEmail] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [activeFeature, setActiveFeature] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -34,115 +36,110 @@ export default function OmegleCloneLanding() {
     navigate('/')
   }
 
-  const fadeIn = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white">
-      <header className="p-4 md:p-6">
-        <nav className="container mx-auto flex justify-between items-center">
-          <motion.h1 className="text-2xl font-bold text-blue-600" initial="hidden" animate="visible" variants={fadeIn}>
-            Soulmagle
-          </motion.h1>
-          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="flex gap-4 items-center">
-            {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <User className="h-6 w-6 text-blue-600" />
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-white" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <>
-                <Button 
-                  className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-full shadow-md"
-                  onClick={() => navigate('/login')}
-                >
-                  Log In
-                </Button>
-                <Button 
-                  className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-full shadow-md"
-                  onClick={() => navigate('/signup')}
-                >
-                  Sign Up
-                </Button>
-              </>
-            )}
-          </motion.div>
-        </nav>
-      </header>
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5
+      }
+    }
+  }
 
-      <main className="container mx-auto px-4 py-8 md:py-16">
-        <motion.section className="text-center mb-16" initial="hidden" animate="visible" variants={fadeIn}>
-          <h2 className="text-4xl md:text-6xl font-bold mb-4">Meet New People</h2>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8">Chat randomly with strangers from around the world!</p>
-          <div className="flex justify-center gap-4">
-            <Button size="lg" className="text-lg px-8 py-4" onClick={() => navigate('/matching')}>
-              Start Chatting
-            </Button>
-            <Button size="lg" className="text-lg px-8 py-4" onClick={() => navigate('/matching')}>
-              Start Video Chat
-            </Button>
+  const features = [
+    {
+      icon: Heart,
+      title: "Meaningful Connections",
+      description: "Find like-minded individuals through our intelligent matching system"
+    },
+    {
+      icon: Users,
+      title: "Global Community",
+      description: "Connect with people from diverse backgrounds worldwide"
+    },
+    {
+      icon: Shield,
+      title: "Safe & Secure",
+      description: "Your privacy and security are our top priorities"
+    },
+    {
+      icon: Sparkles,
+      title: "Smart Matching",
+      description: "Our AI-powered system finds your perfect conversation partner"
+    }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-blue-50">
+      <Navbar />
+      <main className="container mx-auto px-4 pt-16">
+        <motion.section 
+          className="h-screen flex items-center justify-center"
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="text-center">
+            <h1 className="text-6xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+              Connect Your Soul
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 mb-6 max-w-2xl mx-auto">
+              Experience meaningful conversations with people who share your interests and values
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg rounded-full"
+                onClick={() => navigate('/Matching')}
+              >
+                Start Matching
+              </Button>
+              <Button 
+                size="lg" 
+                className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 text-lg rounded-full"
+                onClick={() => navigate('/LearnMore')}
+              >
+                Learn More
+              </Button>
+            </div>
+          </motion.div>
+        </motion.section>
+
+        <motion.section 
+          className="py-20"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <h2 className="text-4xl font-bold text-center mb-16">How It Works</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+                whileHover={{ y: -5 }}
+              >
+                <feature.icon className="w-12 h-12 text-blue-500 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
           </div>
         </motion.section>
 
-        <motion.section
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16"
-          initial="hidden"
-          animate="visible"
-          variants={fadeIn}
-        >
-          {[
-            { icon: MessageSquare, title: "Text Chat", description: "Connect through instant messaging" },
-            { icon: Video, title: "Video Chat", description: "Face-to-face conversations with webcam" },
-            { icon: Shield, title: "Safe & Anonymous", description: "Your privacy is our top priority" },
-            { icon: Globe, title: "Global Community", description: "Meet people from all over the world" },
-          ].map((feature, index) => (
-            <div key={index} className="flex flex-col items-center text-center">
-              <feature.icon className="w-12 h-12 text-blue-500 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
-            </div>
-          ))}
-        </motion.section>
-
-        <motion.section className="mb-16 max-w-2xl mx-auto" initial="hidden" animate="visible" variants={fadeIn}>
-          <h2 className="text-3xl font-bold text-center mb-8">How It Works</h2>
-          <ol className="space-y-4">
-            {[
-              "Click 'Start Chatting' to be paired with a random stranger.",
-              "Begin your conversation through text or video chat.",
-              "Answer a few questions and get matched with persons who share your interests.",
-              "Enjoy meeting new people and making connections across the globe!",
-              "Don't be abusive to others, be friendly and enjoy the chat!",
-            ].map((step, index) => (
-              <li key={index} className="flex items-center">
-                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-4">
-                  {index + 1}
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
-        </motion.section>
-
-        <motion.section className="text-center mb-16" initial="hidden" animate="visible" variants={fadeIn}>
+        <motion.section className="text-center mb-16" initial="hidden" animate="visible" variants={itemVariants}>
           <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
           <p className="text-xl text-gray-600 mb-4">Get notified about new features and updates!</p>
           <form
@@ -163,19 +160,29 @@ export default function OmegleCloneLanding() {
         {isModalOpen && <Matching onClose={() => setIsModalOpen(false)} />}
       </main>
 
-      <footer className="bg-gray-100 py-8">
-        <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2023 Soulmagle. All rights reserved.</p>
-          <div className="mt-4 space-x-4">
-            <a href="#" className="hover:underline">
-              Terms of Service
-            </a>
-            <a href="#" className="hover:underline">
-              Privacy Policy
-            </a>
-            <a href="#" className="hover:underline">
-              Contact Us
-            </a>
+      <footer className="bg-white py-6 mt-10">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">Soulmagle</h3>
+              <p className="text-gray-600">Connecting souls through meaningful conversations</p>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold mb-4">Quick Links</h3>
+              <ul className="space-y-2">
+                <li><a href="/learn-more" className="text-gray-600 hover:text-blue-600">About Us</a></li>
+                <li><a href="/privacy-policy" className="text-gray-600 hover:text-blue-600">Privacy Policy</a></li>
+                <li><a href="/terms-of-service" className="text-gray-600 hover:text-blue-600">Terms of Service</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold mb-4">Connect</h3>
+              <ul className="space-y-2">
+                <li><a href="/contact" className="text-gray-600 hover:text-blue-600">Contact Us</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-blue-600">Support</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-blue-600">Feedback</a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </footer>

@@ -8,15 +8,15 @@ class User(db.Model):
     __tablename__ = 'users'  # Explicitly set table name
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    interests = db.Column(db.Text, nullable=True)
-    answers = db.Column(db.JSON, nullable=True)
-    embedding = db.Column(Vector(1536), nullable=True)
+    interests = db.Column(db.JSON)
+    answers = db.Column(db.JSON)
+    embedding = db.Column(db.JSON)
     is_online = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_available = db.Column(db.Boolean, default=True)
-    socket_id = db.Column(db.String(120))
+    socket_id = db.Column(db.String(100))
     role = db.Column(db.String(20), default='user')
     name = db.Column(db.String(100))
 

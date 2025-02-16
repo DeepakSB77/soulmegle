@@ -176,24 +176,41 @@ def get_user():
         return jsonify({"error": str(e)}), 500
 
 
-@routes_bp.route('/api/store_answers', methods=['POST', 'OPTIONS'])
+@routes_bp.route('/api/store_answers', methods=['POST'])
 @jwt_required()
 def store_answers():
-    if request.method == 'OPTIONS':
-        return '', 204
-
-    current_user_id = get_jwt_identity()
-    data = request.get_json()
-
     try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        answers = data.get('answers', [])
+
+        # Process and store answers
+        processed_answers = []
+        for answer in answers:
+            if isinstance(answer, str):
+                if answer.startswith('blob:'):
+                    # Handle audio recording
+                    # You might want to store the audio file or process it
+                    processed_answers.append({
+                        'type': 'audio',
+                        'content': answer
+                    })
+                else:
+                    # Handle written answer
+                    processed_answers.append({
+                        'type': 'text',
+                        'content': answer
+                    })
+
+        # Update user's answers in the database
         user = User.query.get(current_user_id)
-        if not user:
+        if user:
+            user.answers = processed_answers
+            db.session.commit()
+            return jsonify({"message": "Answers stored successfully"}), 200
+        else:
             return jsonify({"error": "User not found"}), 404
 
-        # Store the answers
-        user.answers = data.get('answers', [])
-        db.session.commit()
-
-        return jsonify({"message": "Answers stored successfully"}), 200
     except Exception as e:
+        print(f"Error storing answers: {str(e)}")
         return jsonify({"error": str(e)}), 500
