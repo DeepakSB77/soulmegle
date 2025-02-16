@@ -466,12 +466,12 @@ export default function VideoChatPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 p-4">
-      <Card className="flex-grow flex flex-col">
+    <div className="flex h-screen bg-gray-100 p-2 md:p-4 flex-col md:flex-row">
+      <Card className="flex-grow flex flex-col md:w-2/3 lg:w-3/4">
         <CardContent className="flex-grow flex flex-col p-6">
-          <div className="flex-grow grid grid-cols-2 gap-4">
+          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
             <motion.div
-              className="relative bg-gray-900 rounded-lg overflow-hidden"
+              className="relative bg-gray-900 rounded-lg overflow-hidden aspect-w-16 aspect-h-9"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
@@ -493,7 +493,7 @@ export default function VideoChatPage() {
               </div>
             </motion.div>
             <motion.div
-              className="relative bg-gray-900 rounded-lg overflow-hidden"
+              className="relative bg-gray-900 rounded-lg overflow-hidden aspect-w-16 aspect-h-9"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -514,9 +514,9 @@ export default function VideoChatPage() {
               </div>
             </motion.div>
           </div>
-          <div className="flex justify-center space-x-4 mt-6">
-            <Button variant={isVideoOn ? "default" : "secondary"} size="icon" onClick={toggleVideo}>
-              {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+          <div className="flex justify-center space-x-2 md:space-x-4 mt-4 flex-wrap">
+            <Button variant={isVideoOn ? "default" : "secondary"} size="icon" onClick={toggleVideo} className="h-10 w-10 md:h-12 md:w-12">
+              {isVideoOn ? <Video className="h-5 w-5 md:h-6 md:w-6" /> : <VideoOff className="h-5 w-5 md:h-6 md:w-6" />}
             </Button>
             <Button variant={isAudioOn ? "default" : "secondary"} size="icon" onClick={() => setIsAudioOn(!isAudioOn)}>
               {isAudioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
@@ -528,8 +528,8 @@ export default function VideoChatPage() {
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
-            <Button variant="destructive" size="icon" onClick={handleCancel}>
-              <X className="h-4 w-4" />
+            <Button variant="destructive" size="icon" onClick={handleCancel} className="h-10 w-10 md:h-12 md:w-12">
+              <X className="h-5 w-5 md:h-6 md:w-6" />
             </Button>
             <Button 
               variant="secondary" 
@@ -555,7 +555,7 @@ export default function VideoChatPage() {
         >
           <Card className="flex-grow flex flex-col h-full">
             <CardContent className="flex-grow flex flex-col p-4 h-full">
-              <ScrollArea className="flex-grow mb-4 h-[calc(100vh-200px)]">
+              <ScrollArea className="flex-grow mb-4 h-[calc(100vh-200px)] overflow-y-auto">
                 <div className="space-y-4 p-4">
                   {messages.map((msg, index) => (
                     <div 
@@ -583,7 +583,7 @@ export default function VideoChatPage() {
                 </div>
               </ScrollArea>
               
-              <form onSubmit={sendMessage} className="flex space-x-2 p-2 bg-white border-t mt-auto">
+              <form onSubmit={sendMessage} className="flex space-x-1 md:space-x-2 p-2 bg-white border-t mt-auto">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button 
@@ -609,7 +609,7 @@ export default function VideoChatPage() {
                 
                 <Input
                   placeholder="Type a message..."
-                  className="flex-grow bg-gray-50 border-gray-200 focus:border-blue-500 rounded-full"
+                  className="flex-grow bg-gray-50 border-gray-200 focus:border-blue-500 rounded-full h-10 md:h-12"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => {
@@ -621,7 +621,7 @@ export default function VideoChatPage() {
                 />
                 <Button 
                   type="submit" 
-                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-4"
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-3 md:px-4 h-10 md:h-12"
                 >
                   Send
                 </Button>

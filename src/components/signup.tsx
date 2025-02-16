@@ -16,8 +16,17 @@ const Signup = () => {
     e.preventDefault()
     setError("")
     
+    // Email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    
     if (!email || !password) {
       toast.error("Email and password are required.")
+      return
+    }
+
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.")
+      toast.error("Please enter a valid email address.")
       return
     }
 
@@ -80,6 +89,7 @@ const Signup = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="max-w-xs mx-auto"
+            maxLength={254}
           />
           <Input
             type="password"
@@ -88,6 +98,34 @@ const Signup = () => {
             onChange={(e) => setPassword(e.target.value)}
             className="max-w-xs mx-auto"
           />
+          {password && password.length < 8 && (
+            <div className="text-red-500 text-center mb-4">
+              Password must be at least 8 characters long.
+            </div>
+          )}
+          {password && !/[A-Z]/.test(password) && (
+            <div className="text-red-500 text-center mb-4">
+              Password must contain at least one uppercase letter.
+            </div>
+          )}
+          {password && !/[a-z]/.test(password) && (
+            <div className="text-red-500 text-center mb-4">
+              Password must contain at least one lowercase letter.
+            </div>
+          )}
+          {password && !/[0-9]/.test(password) && (
+            <div className="text-red-500 text-center mb-4">
+              Password must contain at least one number.
+            </div>
+          )}
+          {password && !/[!@#$%^&*]/.test(password) && (
+            <div className="text-red-500 text-center mb-4">
+              Password must contain at least one special character (e.g., !, @, #, $, %, ^, &, *).
+            </div>
+          )}
+          <p className="mt-4 text-center text-gray-600">
+            Password must be 8-16 characters long and include uppercase letters, lowercase letters, numbers, and special characters.
+          </p>
           <Button type="submit" className="px-6 py-2 mx-auto">Sign Up</Button>
         </form>
         <p className="mt-4 text-center">
