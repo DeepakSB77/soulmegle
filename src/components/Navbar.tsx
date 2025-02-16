@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 // import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { User, LogOut } from "lucide-react"
+import { User } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import {
   DropdownMenu,

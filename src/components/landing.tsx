@@ -20,20 +20,11 @@ import Navbar from './Navbar'
 export default function SoulmagleLanding() {
   const [email, setEmail] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [activeFeature, setActiveFeature] = useState(0)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    // Check if user is logged in (e.g., by checking localStorage or your auth state)
-    const token = localStorage.getItem('token')
-    setIsLoggedIn(!!token)
-  }, [])
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    setIsLoggedIn(false)
-    navigate('/')
+  const handleFeatureChange = (index: number) => {
+    setActiveFeature(index)
   }
 
   const containerVariants = {
@@ -127,9 +118,8 @@ export default function SoulmagleLanding() {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                variants={itemVariants}
-                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                whileHover={{ y: -5 }}
+                onClick={() => handleFeatureChange(index)}
+                className={`bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow ${activeFeature === index ? 'border-2 border-blue-500' : ''}`}
               >
                 <feature.icon className="w-12 h-12 text-blue-500 mb-4" />
                 <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
