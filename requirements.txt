@@ -1,0 +1,43 @@
+# Database
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.27
+
+# Vector Database
+pinecone-client==3.0.2
+
+# AI and Embeddings
+openai==1.12.0
+
+# Web Framework
+fastapi==0.109.2
+uvicorn==0.27.1
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# Environment Variables
+python-dotenv==1.0.1
+
+# Utilities
+pydantic==2.6.1
+requests==2.31.0
+
+# CORS
+fastapi-cors==0.0.6
+
+# Async Support
+httpx==0.26.0
+aiohttp==3.9.3
+
+# Date/Time handling
+python-dateutil==2.8.2
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.5
+
+# Development Tools
+black==24.1.1    # Code formatting
+flake8==7.0.0    # Code linting 
