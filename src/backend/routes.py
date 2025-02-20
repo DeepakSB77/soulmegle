@@ -5,6 +5,7 @@ from models import User
 from extensions import db
 import traceback
 import os
+from services.vector_services import initialize_pinecone
 
 # Create a Blueprint
 routes_bp = Blueprint('routes', __name__)
@@ -153,3 +154,32 @@ def find_match():
         }), 200
 
     return jsonify({"match_found": False}), 200
+
+
+@routes_bp.route('/test-pinecone', methods=['GET'])
+def test_pinecone():
+    try:
+        print("Starting test_pinecone endpoint")
+        pc, index = initialize_pinecone()
+        
+        if pc is None or index is None:
+            return jsonify({
+                "status": "error",
+                "message": "Pinecone initialization failed"
+            }), 500
+
+        # Test the connection by getting index stats
+        stats = index.describe_index_stats()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Pinecone connection is working",
+            "stats": stats
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in test_pinecone: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to connect to Pinecone: {str(e)}"
+        }), 500

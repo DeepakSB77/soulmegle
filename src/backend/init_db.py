@@ -1,5 +1,6 @@
 from app import app, db
 from models import User
+from services.vector_services import initialize_pinecone
 
 
 def init_db():

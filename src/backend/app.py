@@ -12,159 +12,36 @@ import wave
 from vosk import Model, KaldiRecognizer
 import json
 import requests  # Make sure to import requests if you're using an API
+from pinecone import Pinecone
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Initialize Pinecone first
+    try:
+        from services.vector_services import initialize_pinecone
+        print("Starting Pinecone initialization in create_app...")
+        pc, index = initialize_pinecone()
+        if pc and index:
+            print("Pinecone initialized successfully in create_app")
+            app.config['PINECONE_CLIENT'] = pc
+            app.config['PINECONE_INDEX'] = index
+        else:
+            print("Warning: Pinecone initialization failed in create_app")
+    except Exception as e:
+        print(f"Error initializing Pinecone in create_app: {e}")
+
+    # Register the blueprint only once
+    from routes import routes_bp
+    app.register_blueprint(routes_bp)
+    print("Blueprint registered successfully")
+
+    # Configure other app settings
     configure_app(app)
     initialize_extensions(app)
-    register_blueprints(app)
-
-    # Database configuration
-    conn = psycopg2.connect(os.getenv('DATABASE_URL'))
-
-    # OpenAI configuration
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-
-    # Load the Vosk model
-    # Update this path
-    model_path = 'C:/Users/Deepak/Downloads/Compressed/soul/src/backend/vosk-model-small-en-us-0.15'
-    model = Model(model_path)
-
-    @app.route('/api/process_audio', methods=['POST'])
-    def process_audio():
-        audio_file = request.files['file']
-        audio_file.save('uploads/audio.wav')
-
-        # Convert audio to text
-        text = convert_audio_to_text('uploads/audio.wav')
-
-        # Generate embeddings using OpenAI
-        embeddings = openai.Embedding.create(
-            model='text-embedding-ada-002',
-            input=text
-        )
-
-        # Store embeddings in your vector database
-        store_embeddings(embeddings['data'])
-
-        return jsonify({'message': 'Audio processed successfully', 'embeddings': embeddings})
-
-    def convert_audio_to_text(audio_file_path):
-        wf = wave.open(audio_file_path, "rb")
-        rec = KaldiRecognizer(model, wf.getframerate())
-        rec.SetWords(True)
-
-        results = []
-        while True:
-            data = wf.readframes(4000)
-            if len(data) == 0:
-                break
-            if rec.AcceptWaveform(data):
-                results.append(rec.Result())
-            else:
-                results.append(rec.PartialResult())
-
-        # Combine results
-        final_result = ''
-        for result in results:
-            result_dict = json.loads(result)
-            if 'text' in result_dict:
-                final_result += result_dict['text'] + ' '
-
-        return final_result.strip()
-
-    def store_embeddings(embeddings):
-        with conn.cursor() as cursor:
-            cursor.execute(
-                'INSERT INTO embeddings_table (embedding) VALUES (%s)', (embeddings,))
-            conn.commit()
-
-    @app.route("/save-interests", methods=["POST"])
-    def save_interests():
-        try:
-            username = request.json.get("username")
-            interests_vector = request.json.get("interests_vector")
-            print("Received data:", username, interests_vector)  # Debugging
-
-            result = conn.cursor()
-            result.execute(
-                "INSERT INTO users (username, interests_vector) VALUES (%s, %s) RETURNING *",
-                (username, interests_vector)
-            )
-            conn.commit()
-            print("Inserted data:", result.fetchone())  # Verify insertion
-            return jsonify(result.fetchone()), 200
-        except Exception as error:
-            print("Database error:", error)  # Catch errors
-            return jsonify({"error": "Failed to save interests"}), 500
-
-    # Define the transcription function
-    def transcribe_audio_function(audio_url):
-        # Example using a hypothetical transcription API
-        response = requests.post(
-            # Replace with actual API endpoint
-            "https://api.transcription-service.com/transcribe",
-            json={"audio_url": audio_url},
-            # Replace with your API key if needed
-            headers={"Authorization": "Bearer YOUR_API_KEY"}
-        )
-
-        if response.status_code == 200:
-            # Adjust based on the API response structure
-            return response.json().get("transcript")
-        else:
-            print("Error transcribing audio:", response.text)
-            return "Transcription failed"
-
-    @app.route("/transcribe-audio", methods=["POST"])
-    def transcribe_audio():
-        audio_url = request.json.get("audioUrl")
-        print("Transcribing audio:", audio_url)
-        transcript = transcribe_audio_function(
-            audio_url)  # Call the transcription function
-        print("Transcript:", transcript)  # Check if text is extracted
-        return jsonify({"transcript": transcript}), 200
-
-    @app.route("/match-user", methods=["GET"])
-    def match_user():
-        user_id = request.args.get("userId")
-        threshold = 0.2  # Adjust this value
-
-        # Get the current user's vector
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT interests_vector FROM users WHERE id = %s", (user_id,))
-            current_user_vector = cursor.fetchone()[0]
-
-            # Find closest match within threshold
-            cursor.execute(
-                """
-                SELECT id, username, interests_vector <=> %s AS distance 
-                FROM users 
-                WHERE id != %s AND interests_vector <=> %s < %s 
-                ORDER BY distance 
-                LIMIT 1
-                """,
-                (current_user_vector, user_id, current_user_vector, threshold)
-            )
-
-            result = cursor.fetchone()
-            if not result:
-                return jsonify({"error": "No match found"}), 404
-
-            return jsonify({"id": result[0], "username": result[1]}), 200
-
-    # Error handlers
-    @app.errorhandler(500)
-    def handle_500_error(e):
-        return jsonify({
-            "msg": "Internal server error",
-            "error": str(e)
-        }), 500
-
+    
     return app
 
 
@@ -180,9 +57,20 @@ def initialize_extensions(app):
     JWTManager(app)
 
 
-def register_blueprints(app):
-    """Register application blueprints."""
-    app.register_blueprint(routes_bp)
+def initialize_pinecone():
+    try:
+        print("Starting Pinecone initialization...")
+        PINECONE_API_KEY = "your_api_key"
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        print("Pinecone client initialized successfully")
+        
+        index_name = "soulmegle"
+        index = pc.Index(index_name)
+        print("Pinecone index accessed successfully")
+        return pc, index
+    except Exception as e:
+        print(f"Error initializing Pinecone: {e}")
+        return None, None
 
 
 if __name__ == "__main__":
